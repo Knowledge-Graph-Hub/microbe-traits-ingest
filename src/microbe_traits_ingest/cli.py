@@ -12,11 +12,13 @@ logger = logging.getLogger(__name__)
 
 
 @app.callback()
-def callback(version: bool = typer.Option(False, "--version", is_eager=True),
+def callback(
+    version: bool = typer.Option(False, "--version", is_eager=True),
 ):
     """microbe-traits-ingest CLI."""
     if version:
         from microbe_traits_ingest import __version__
+
         typer.echo(f"microbe-traits-ingest version: {__version__}")
         raise typer.Exit()
 
@@ -45,7 +47,7 @@ def transform(
         row_limit=row_limit,
         verbose=verbose,
     )
-    
+
 
 if __name__ == "__main__":
     app()

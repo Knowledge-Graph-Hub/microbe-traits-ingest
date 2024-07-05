@@ -8,7 +8,7 @@ ingest_title: 'microbe_traits_ingest'
 ingest_url: 'https://github.com/Knowledge-Graph-Hub/microbe-traits-ingest'
 description: 'This is ingestion code for the repository: bacteria-archaea-traits.'
 # source: 'Possibly replaced by provided_by'
-provided_by: 'traits'
+provided_by: 'https://github.com/bacteria-archaea-traits/bacteria-archaea-traits'
 # One of license and rights is possibly redundant
 license: 'Link to license'
 rights: 'Link to rights' 

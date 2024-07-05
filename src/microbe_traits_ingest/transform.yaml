@@ -51,7 +51,7 @@ min_edge_count: 5
 
 ### CSV specific parameters
 
-delimiter: "\t" # Delimiter for csv files (REQUIRED if format is csv)
+delimiter: "," # Delimiter for csv files (REQUIRED if format is csv)
 # columns: List of columns to include in output
 # header: Header row index
 # header_delimiter: Delimiter for header in csv files
