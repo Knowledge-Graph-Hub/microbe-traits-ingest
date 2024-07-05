@@ -1,0 +1,125 @@
+id: https://w3id.org/traits
+name: TraitsSchema
+description: A schema for representing traits of organisms.
+prefixes:
+  linkml: https://w3id.org/linkml/
+  traits: https://w3id.org/traits/
+default_prefix: traits
+default_range: string
+
+imports:
+  - linkml:types
+
+classes:
+  Traits:
+    description: A class representing various traits of an organism.
+    attributes:
+      name:
+        description: The name of the organism.
+        range: string
+      tax_id:
+        description: The taxonomy ID of the organism.
+        range: string
+        required: true
+      species_tax_id:
+        description: The species taxonomy ID of the organism.
+        range: string
+      data_source:
+        description: The data source of the information.
+        range: string
+      org_name:
+        description: The name of the organism.
+        range: string
+      species:
+        description: The species of the organism.
+        range: string
+      genus:
+        description: The genus of the organism.
+        range: string
+      family:
+        description: The family of the organism.
+        range: string
+      order:
+        description: The order of the organism.
+        range: string
+      class_:
+        description: The class of the organism.
+        range: string
+      phylum:
+        description: The phylum of the organism.
+        range: string
+      superkingdom:
+        description: The superkingdom of the organism.
+        range: string
+      gram_stain:
+        description: The gram stain characteristic of the organism.
+        range: string
+      metabolism:
+        description: The metabolism type of the organism.
+        range: string
+      pathways:
+        description: The metabolic pathways present in the organism.
+        range: string
+      carbon_substrates:
+        description: The carbon substrates utilized by the organism.
+        range: string
+      sporulation:
+        description: The sporulation capability of the organism.
+        range: string
+      motility:
+        description: The motility of the organism.
+        range: string
+      range_tmp:
+        description: The temperature range within which the organism can grow.
+        range: string
+      range_salinity:
+        description: The salinity range within which the organism can grow.
+        range: string
+      cell_shape:
+        description: The shape of the cells of the organism.
+        range: string
+      isolation_source:
+        description: The source from which the organism was isolated.
+        range: string
+      d1_lo:
+        description: Lower bound of a specific measurement (d1).
+        range: string
+      d1_up:
+        description: Upper bound of a specific measurement (d1).
+        range: string
+      d2_lo:
+        description: Lower bound of a specific measurement (d2).
+        range: string
+      d2_up:
+        description: Upper bound of a specific measurement (d2).
+        range: string
+      doubling_h:
+        description: Doubling time in hours.
+        range: string
+      genome_size:
+        description: Size of the genome.
+        range: string
+      gc_content:
+        description: GC content of the genome.
+        range: string
+      coding_genes:
+        description: Number of coding genes.
+        range: string
+      optimum_tmp:
+        description: Optimum temperature for growth.
+        range: string
+      optimum_ph:
+        description: Optimum pH for growth.
+        range: string
+      growth_tmp:
+        description: Temperature range for growth.
+        range: string
+      rRNA16S_genes:
+        description: Number of 16S rRNA genes.
+        range: string
+      tRNA_genes:
+        description: Number of tRNA genes.
+        range: string
+      ref_id:
+        description: Reference ID.
+        range: string
