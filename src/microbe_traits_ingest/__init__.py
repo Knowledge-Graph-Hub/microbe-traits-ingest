@@ -16,7 +16,7 @@ except importlib_metadata.PackageNotFoundError:
 PWD = Path(__file__).parent
 SCHEMA_DIR = PWD / "schema"
 SCHEMA_YAML = SCHEMA_DIR / "traits.yaml"
-SCHEMA_PYTHON = SCHEMA_DIR / "traits.py"
+SCHEMA_PYTHON = SCHEMA_DIR / "traits_datamodel.py"
 
 schema_view = SchemaView(SCHEMA_YAML)
 

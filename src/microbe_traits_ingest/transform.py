@@ -1,4 +1,5 @@
 import uuid  # For generating UUIDs for associations
+from pathlib import Path
 
 from biolink_model.datamodel.pydanticmodel_v2 import (
     Association,
@@ -48,7 +49,7 @@ from microbe_traits_ingest.constants import (
     TAXON_PATHWAY_PREDICATE,
     TRNA_GENES,
 )
-from microbe_traits_ingest.schema import Traits
+from microbe_traits_ingest.schema.traits_datamodel import Traits
 from microbe_traits_ingest.schema.utils import get_oi
 
 koza_app = get_koza_app("microbe-traits")
@@ -130,6 +131,7 @@ while (row := koza_app.get_row()) is not None:
             name=trait_object.org_name,
         )
         if trait_object.pathways:
+            koza_app.output_dir = Path(koza_app.output_dir) / "pathways"
             try:
                 annotations = upa_adapter.annotate_text(trait_object.pathways, configuration)
             except Exception as e:
@@ -151,5 +153,4 @@ while (row := koza_app.get_row()) is not None:
                         knowledge_level="not_provided",
                         agent_type="not_provided",
                     )
-                    koza_app.output_dir = koza_app.output_dir / "pathways"
                     koza_app.write(organism, pathway, association)
