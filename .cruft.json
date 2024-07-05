@@ -1,0 +1,25 @@
+{
+  "template": "https://github.com/monarch-initiative/cookiecutter-monarch-ingest",
+  "commit": "a76709a1a8983e5d7396535c517133530044e6c8",
+  "checkout": null,
+  "context": {
+    "cookiecutter": {
+      "github_org_name": "Knowledge-Graph-Hub",
+      "project_name": "microbe-traits-ingest",
+      "project_description": "This is ingestion code for the repository: bacteria-archaea-traits.",
+      "__repo_name": "microbe-traits-ingest",
+      "__project_slug": "microbe_traits_ingest",
+      "__project_url": "https://github.com/Knowledge-Graph-Hub/microbe-traits-ingest",
+      "ingest_source": "traits",
+      "ingest_type": "organism_taxon-to_traits",
+      "__ingest_name": "microbe-traits",
+      "min_python_version": "3.10",
+      "full_name": "Harshad Hegde",
+      "email": "hhegde@lbl.gov",
+      "__author": "Harshad Hegde <hhegde@lbl.gov>",
+      "license": "BSD-3",
+      "_template": "https://github.com/monarch-initiative/cookiecutter-monarch-ingest"
+    }
+  },
+  "directory": null
+}

@@ -1,0 +1,14 @@
+# Metadata for the project
+# Uncomment and edit the fields you want to include in the metadata
+# See metadata properties at https://koza.monarchinitiative.org/Ingests/source_config/
+
+id:  'CURIE for the project'
+name: 'microbe-traits'
+ingest_title: 'microbe_traits_ingest'
+ingest_url: 'https://github.com/Knowledge-Graph-Hub/microbe-traits-ingest'
+description: 'This is ingestion code for the repository: bacteria-archaea-traits.'
+# source: 'Possibly replaced by provided_by'
+provided_by: 'traits'
+# One of license and rights is possibly redundant
+license: 'Link to license'
+rights: 'Link to rights' 
