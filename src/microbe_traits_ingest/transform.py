@@ -55,7 +55,7 @@ from microbe_traits_ingest.schema.utils import get_oi
 koza_app = get_koza_app("microbe-traits")
 
 while (row := koza_app.get_row()) is not None:
-    # Code to transform each row of data
+    # * Code to transform each row of data
     # For more information, see https://koza.monarchinitiative.org/Ingests/transform
     # entity_a = Entity(
     #     id=f"XMPL:00000{row['example_column_1'].split('_')[-1]}",
