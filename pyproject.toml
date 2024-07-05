@@ -28,7 +28,7 @@ mkdocs = ">=1.4"
 mkdocs-material = ">=9.5"
 mkdocs-macros-plugin = "*"
 black = "*"
-ruff = "*"
+ruff = "^0.5.1"
 
 [tool.poetry.scripts]
 ingest = "microbe_traits_ingest.cli:app"
@@ -44,7 +44,7 @@ skip-string-normalization = true
 
 [tool.ruff]
 line-length = 120
-ignore = [
+lint.ignore = [
     "D100", # `missing-module-docstring`
     "D101", # `missing-function-docstring`
     "D102", # `missing-method-docstring`
@@ -54,11 +54,12 @@ ignore = [
     "D203", # `blank-line-before-docstring`
     "F541", # f-strings with no placeholders
     "S101", # Use of assert detected
+    "S608", # Possible SQL injection vector through string-based query construction
 ]
 # Allow autofix for all enabled rules (when `--fix`) is provided.
-fixable = ["ALL"]
+lint.fixable = ["ALL"]
 # Select or ignore from https://beta.ruff.rs/docs/rules/
-select = [
+lint.select = [
     "B", # bugbear
     "D", # pydocstyle
     "E", # pycodestyle errors
@@ -67,8 +68,10 @@ select = [
     "S", # flake8-bandit
     "W", # Warning
 ]
-unfixable = []
+lint.unfixable = []
 target-version = "py310"
+force-exclude = true
+exclude = ["traits.py"]
 
 [tool.codespell]
 skip = "*.po,*.ts,.git,pyproject.toml"

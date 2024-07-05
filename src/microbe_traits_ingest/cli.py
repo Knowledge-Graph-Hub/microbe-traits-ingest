@@ -1,11 +1,10 @@
 """Command line interface for microbe-traits-ingest."""
 import logging
-
 from pathlib import Path
 
+import typer
 from kghub_downloader.download_utils import download_from_yaml
 from koza.cli_utils import transform_source
-import typer
 
 app = typer.Typer()
 logger = logging.getLogger(__name__)

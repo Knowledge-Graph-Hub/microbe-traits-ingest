@@ -1,12 +1,13 @@
-import requests
 import json
+
+import requests
 
 
 def main():
     url = "https://api.github.com/repos/Knowledge-Graph-Hub/microbe-traits-ingest/releases/latest"
 
     # Get the latest release from the GitHub API
-    response = requests.get(url)
+    response = requests.get(url, timeout=10)
     if response.status_code != 200:
         raise Exception(
             f"\n\tFailed to get latest release from {url}\n\tStatus: {response.status_code} - {response.text}"
@@ -26,7 +27,7 @@ def main():
 
     # Download the reports
     for fn, url in reports.items():
-        response = requests.get(url)
+        response = requests.get(url, timeout=10)
         output_fn = "_".join(fn.split("_")[-2:])
         with open(f"docs/{output_fn}", "wb") as f:
             f.write(response.content)

@@ -97,5 +97,5 @@ lint:
 
 .PHONY: format
 format: 
-	$(RUN) ruff check --fix --exit-zero
-	$(RUN) black -l 120 src tests
+	$(RUN) ruff check --fix --exit-zero 
+	$(RUN) black -l 120 src tests --exclude= src\/microbe_traits_ingest/\schema\/*\.py

@@ -1,8 +1,9 @@
 """microbe-traits-ingest package."""
-import importlib_metadata
 from pathlib import Path
-from linkml_runtime.utils.schemaview import SchemaView
+
+import importlib_metadata
 from linkml.generators.pythongen import PythonGenerator
+from linkml_runtime.utils.schemaview import SchemaView
 
 try:
     __version__ = importlib_metadata.version(__name__)

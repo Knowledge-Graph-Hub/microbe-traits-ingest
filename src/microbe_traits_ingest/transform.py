@@ -1,18 +1,14 @@
-from pathlib import Path
 import uuid  # For generating UUIDs for associations
 
 from biolink_model.datamodel.pydanticmodel_v2 import (
-    OrganismTaxon,
     Association,
-    ChemicalEntity,
-    ChemicalRole,
     BiologicalProcess,
-    ActivityAndBehavior,
+    OrganismTaxon,
 )
 from koza.cli_utils import get_koza_app
+from oaklib.datamodels.text_annotator import TextAnnotationConfiguration
 from tqdm import tqdm
 
-from microbe_traits_ingest.schema import Traits
 from microbe_traits_ingest.constants import (
     CARBON_SUBSTRATES,
     CELL_SHAPE,
@@ -52,8 +48,8 @@ from microbe_traits_ingest.constants import (
     TAXON_PATHWAY_PREDICATE,
     TRNA_GENES,
 )
+from microbe_traits_ingest.schema import Traits
 from microbe_traits_ingest.schema.utils import get_oi
-from oaklib.datamodels.text_annotator import TextAnnotationConfiguration
 
 koza_app = get_koza_app("microbe-traits")
 
