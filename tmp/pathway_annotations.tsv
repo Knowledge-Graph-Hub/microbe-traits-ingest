@@ -1,0 +1,12 @@
+nitrate_reduction	UPa:UPA00654	nitrate reduction
+nitric_oxide_reduction	UPa:UPA00638	nitric oxide reduction
+sulfite_reduction	UPa:UPA00370	sulfite reduction
+methanogenesis	UPa:UPA00639	methanogenesis
+hydrocarbon_degradation	UPa:UPA00352	hydrocarbon degradation
+fermentation	UPa:UPA00553	fermentation
+aromatic_compound_degradation	UPa:UPA00706	aromatic compound degradation
+urea_degradation	UPa:UPA00258	urea degradation
+xylan_degradation	UPa:UPA00114	xylan degradation
+chitin_degradation	UPa:UPA00349	chitin degradation
+cellulose_degradation	UPa:UPA00696	cellulose degradation
+lignin_degradation	UPa:UPA00892	lignin degradation

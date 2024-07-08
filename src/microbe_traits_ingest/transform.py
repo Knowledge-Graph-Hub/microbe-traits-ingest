@@ -7,11 +7,13 @@ from biolink_model.datamodel.pydanticmodel_v2 import (
     OrganismTaxon,
 )
 from koza.cli_utils import get_koza_app
-from oaklib.datamodels.text_annotator import TextAnnotationConfiguration
+from oaklib.datamodels.text_annotator import TextAnnotationConfiguration, TextAnnotation
 from tqdm import tqdm
+from os import makedirs
 
 from microbe_traits_ingest.constants import (
     CARBON_SUBSTRATES,
+    CARBON_SUBSTRATES_ANNOTATIONS_FILE,
     CELL_SHAPE,
     CLASS_,
     CODING_GENES,
@@ -35,6 +37,8 @@ from microbe_traits_ingest.constants import (
     OPTIMUM_TMP,
     ORDER,
     ORG_NAME,
+    PATHWAY_ANNOTATIONS_FILE,
+    PATHWAY_PREFIX,
     PATHWAYS,
     PHYLUM,
     RANGE_SALINITY,
@@ -47,47 +51,53 @@ from microbe_traits_ingest.constants import (
     SUPERKINGDOM,
     TAX_ID,
     TAXON_PATHWAY_PREDICATE,
+    TMP_DIR,
     TRNA_GENES,
 )
 from microbe_traits_ingest.schema.traits_datamodel import Traits
-from microbe_traits_ingest.schema.utils import get_oi
+from microbe_traits_ingest.utils import get_oi
 
 koza_app = get_koza_app("microbe-traits")
 
-while (row := koza_app.get_row()) is not None:
-    # * Code to transform each row of data
-    # For more information, see https://koza.monarchinitiative.org/Ingests/transform
-    # entity_a = Entity(
-    #     id=f"XMPL:00000{row['example_column_1'].split('_')[-1]}",
-    #     name=row["example_column_1"],
-    #     category=["biolink:Entity"],
-    # )
-    # entity_b = Entity(
-    #     id=f"XMPL:00000{row['example_column_2'].split('_')[-1]}",
-    #     name=row["example_column_2"],
-    #     category=["biolink:Entity"],
-    # )
-    # association = Association(
-    #     id=str(uuid.uuid1()),
-    #     subject=row["example_column_1"],
-    #     predicate=row["example_column_3"],
-    #     object=row["example_column_2"],
-    #     subject_category="SUBJ",
-    #     object_category="OBJ",
-    #     category=["biolink:Association"],
-    #     knowledge_level="not_provided",
-    #     agent_type="not_provided",
-    # )
-    # koza_app.write(entity_a, entity_b, association)
-    # ********************************************************************************
-    rows = iter(koza_app.get_row, None)
-    upa_adapter = get_oi("upa")
-    configuration = TextAnnotationConfiguration(
-        include_aliases=True,
-        matches_whole_text=True,
-    )
+# # Initialize the iterator
+# rows = list(iter(koza_app.get_row, None))  # Convert to list to avoid exhaustion issues
+# if not rows:
+#     print("No rows to process.")
+# else:
+#     print(f"Total rows to process: {len(rows)}")
 
-    for row in tqdm(rows, desc="Processing rows", unit="row"):
+upa_adapter = get_oi("upa")
+chebi_adapter = get_oi("chebi")
+configuration = TextAnnotationConfiguration(
+    include_aliases=True,
+    matches_whole_text=True,
+)
+
+pathways_annotation_file_path = Path(f"{TMP_DIR}/{PATHWAY_ANNOTATIONS_FILE}")
+carbon_substrates_annotation_file_path = Path(f"{TMP_DIR}/{CARBON_SUBSTRATES_ANNOTATIONS_FILE}")
+
+# Initialize annotation maps and flags
+pathways_annotations_map = {}
+pathways_set = set()
+pathways_annotated = False
+
+# Load existing pathways annotations if available
+if pathways_annotation_file_path.exists():
+    with open(pathways_annotation_file_path, "r") as f:
+        next(f)  # Skip header
+        pathways_annotations_map = {
+            line.split("\t")[0]: TextAnnotation(object_id=line.split("\t")[1], object_label=line.split("\t")[2])
+            for line in f.readlines()
+        }
+        pathways_set.update(annotation.object_id for annotation in pathways_annotations_map.values())
+        pathways_annotated = True
+else:
+    makedirs(TMP_DIR, exist_ok=True)
+
+total_rows = 172324
+
+with tqdm(total=total_rows, desc="Processing rows", unit="row") as pbar:
+    while (row := koza_app.get_row()) is not None:
         trait_object = Traits(
             tax_id=row[TAX_ID],
             name=row[ORG_NAME],
@@ -130,27 +140,42 @@ while (row := koza_app.get_row()) is not None:
             id=f"{NCBITAXON_PREFIX}:{trait_object.tax_id}",
             name=trait_object.org_name,
         )
-        if trait_object.pathways:
-            koza_app.output_dir = Path(koza_app.output_dir) / "pathways"
-            try:
+
+        # Handle pathways annotations
+        if trait_object.pathways and trait_object.pathways != "NA":
+            if not pathways_annotated:
                 annotations = upa_adapter.annotate_text(trait_object.pathways, configuration)
-            except Exception as e:
-                print(f"Error annotating text: {e}")
-                continue
-            for annotation in annotations:
-                if annotation.object_id:
-                    pathway = BiologicalProcess(
-                        id=annotation.object_id,
-                        name=annotation.object_label,
-                    )
-                    association = Association(
-                        id=str(uuid.uuid1()),
-                        subject=organism.id,
-                        predicate=TAXON_PATHWAY_PREDICATE,
-                        object=pathway.id,
-                        subject_category=organism.category[0],
-                        object_category=pathway.category[0],
-                        knowledge_level="not_provided",
-                        agent_type="not_provided",
-                    )
-                    koza_app.write(organism, pathway, association)
+                with open(pathways_annotation_file_path, "a") as f:
+                    for annotation in annotations:
+                        if annotation.object_id not in pathways_set:
+                            f.write(f"{trait_object.pathways}\t{annotation.object_id}\t{annotation.object_label}\n")
+                            pathways_annotations_map[trait_object.pathways] = annotation
+                            pathways_set.add(annotation.object_id)
+
+
+            if trait_object.pathways in pathways_annotations_map:
+                annotation = pathways_annotations_map[trait_object.pathways]
+                pathway = BiologicalProcess(
+                    id=annotation.object_id,
+                    name=annotation.object_label,
+                )
+            else:
+                # print(f"Pathway not annotated: {trait_object.pathways}")
+                pathway = BiologicalProcess(
+                    id=f"{PATHWAY_PREFIX}:{trait_object.pathways}",
+                    name=trait_object.pathways,
+                )
+            tax_path_association = Association(
+                id=str(uuid.uuid1()),
+                subject=organism.id,
+                predicate=TAXON_PATHWAY_PREDICATE,
+                object=pathway.id,
+                subject_category=organism.category[0],
+                object_category=pathway.category[0],
+                knowledge_level="not_provided",
+                agent_type="not_provided",
+            )
+                
+            koza_app.write(organism, pathway, tax_path_association)
+
+        pbar.update(1)
