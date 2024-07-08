@@ -1,4 +1,5 @@
 import uuid  # For generating UUIDs for associations
+from os import makedirs
 from pathlib import Path
 
 from biolink_model.datamodel.pydanticmodel_v2 import (
@@ -7,9 +8,8 @@ from biolink_model.datamodel.pydanticmodel_v2 import (
     OrganismTaxon,
 )
 from koza.cli_utils import get_koza_app
-from oaklib.datamodels.text_annotator import TextAnnotationConfiguration, TextAnnotation
+from oaklib.datamodels.text_annotator import TextAnnotation, TextAnnotationConfiguration
 from tqdm import tqdm
-from os import makedirs
 
 from microbe_traits_ingest.constants import (
     CARBON_SUBSTRATES,
@@ -152,7 +152,6 @@ with tqdm(total=total_rows, desc="Processing rows", unit="row") as pbar:
                             pathways_annotations_map[trait_object.pathways] = annotation
                             pathways_set.add(annotation.object_id)
 
-
             if trait_object.pathways in pathways_annotations_map:
                 annotation = pathways_annotations_map[trait_object.pathways]
                 pathway = BiologicalProcess(
@@ -175,7 +174,7 @@ with tqdm(total=total_rows, desc="Processing rows", unit="row") as pbar:
                 knowledge_level="not_provided",
                 agent_type="not_provided",
             )
-                
+
             koza_app.write(organism, pathway, tax_path_association)
 
         pbar.update(1)

@@ -43,4 +43,3 @@ CELL_SHAPE_PREFIX = "cell_shape"
 TMP_DIR = "tmp"
 PATHWAY_ANNOTATIONS_FILE = "pathway_annotations.tsv"
 CARBON_SUBSTRATES_ANNOTATIONS_FILE = "carbon_substrate_annotations.tsv"
-
