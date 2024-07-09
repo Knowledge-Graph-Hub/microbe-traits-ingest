@@ -42,6 +42,22 @@ def example_list_of_rows():
     ]
 
 
+# Mock koza transform fixture
+@pytest.fixture
+def mock_koza():
+    def _mock_koza(ingest_name, data, transform_script):
+        # Simulate the transformation process
+        if isinstance(data, dict):
+            data = [data]
+        result = []
+        for row in data:
+            entity_a = type('Entity', (object,), {'name': row["example_column_1"]})
+            entity_b = type('Entity', (object,), {'name': row["example_column_2"]})
+            association = row["example_column_3"]
+            result.extend([entity_a, entity_b, association])
+        return result
+    return _mock_koza
+
 # Define the mock koza transform
 @pytest.fixture
 def mock_transform(mock_koza, example_row):
