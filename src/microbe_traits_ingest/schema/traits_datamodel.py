@@ -1,5 +1,5 @@
 # Auto generated from None by pythongen.py version: 0.0.1
-# Generation date: 2024-07-08T15:57:16
+# Generation date: 2024-07-08T20:07:51
 # Schema: TraitsSchema
 #
 # id: https://w3id.org/traits

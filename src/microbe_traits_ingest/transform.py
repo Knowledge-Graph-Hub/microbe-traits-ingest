@@ -2,7 +2,7 @@ import uuid  # For generating UUIDs for associations
 from os import makedirs
 from pathlib import Path
 
-from biolink_model.datamodel.pydanticmodel_v2 import Association, BiologicalProcess, ChemicalRole, OrganismTaxon
+from biolink_model.datamodel.pydanticmodel_v2 import Association, BiologicalProcess, ChemicalEntity, OrganismTaxon
 from koza.cli_utils import get_koza_app
 from oaklib.datamodels.text_annotator import TextAnnotation, TextAnnotationConfiguration
 from tqdm import tqdm
@@ -208,16 +208,14 @@ with tqdm(total=total_rows, desc="Processing rows", unit="row") as pbar:
 
                 if substrate in carbon_substrates_annotations_map:
                     annotation = carbon_substrates_annotations_map[substrate]
-                    carbon_substrate = ChemicalRole(
+                    carbon_substrate = ChemicalEntity(
                         id=annotation.object_id,
                         name=annotation.object_label,
-                        has_attribute_type="carbon substrate",
                     )
                 else:
-                    carbon_substrate = ChemicalRole(
+                    carbon_substrate = ChemicalEntity(
                         id=f"{CARBON_SUBSTRATE_PREFIX}:{substrate.replace(' ', '_')}",
                         name=substrate,
-                        has_attribute_type="carbon substrate",
                     )
                 tax_carbon_substrate_association = Association(
                     id=str(uuid.uuid1()),
