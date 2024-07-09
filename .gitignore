@@ -142,3 +142,4 @@ test-output/
 # Transform logs
 logs/
 .vscode/*
+src/microbe_traits_ingest/schema/traits_datamodel.py

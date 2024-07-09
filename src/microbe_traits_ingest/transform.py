@@ -1,14 +1,24 @@
+import json
 import uuid  # For generating UUIDs for associations
+from collections import defaultdict
 from os import makedirs
 from pathlib import Path
 
-from biolink_model.datamodel.pydanticmodel_v2 import Association, BiologicalProcess, ChemicalEntity, OrganismTaxon
+from biolink_model.datamodel.pydanticmodel_v2 import (
+    Association,
+    BiologicalProcess,
+    ChemicalEntity,
+    ChemicalRole,
+    OrganismTaxon,
+)
 from koza.cli_utils import get_koza_app
 from oaklib.datamodels.text_annotator import TextAnnotation, TextAnnotationConfiguration
 from tqdm import tqdm
 
 from microbe_traits_ingest.constants import (
+    ANNOTATION_KEY,
     CARBON_SUBSTRATE_PREFIX,
+    CARBON_SUBSTRATE_ROLE_PREDICATE,
     CARBON_SUBSTRATES,
     CARBON_SUBSTRATES_ANNOTATIONS_FILE,
     CELL_SHAPE,
@@ -26,6 +36,7 @@ from microbe_traits_ingest.constants import (
     GENUS,
     GRAM_STAIN,
     GROWTH_TMP,
+    HAS_ROLE,
     ISOLATION_SOURCE,
     METABOLISM,
     MOTILITY,
@@ -41,6 +52,7 @@ from microbe_traits_ingest.constants import (
     RANGE_SALINITY,
     RANGE_TMP,
     REF_ID,
+    ROLES_KEY,
     RRNA16S_GENES,
     SPECIES,
     SPECIES_TAX_ID,
@@ -75,10 +87,10 @@ pathways_annotation_file_path = Path(f"{TMP_DIR}/{PATHWAY_ANNOTATIONS_FILE}")
 carbon_substrates_annotation_file_path = Path(f"{TMP_DIR}/{CARBON_SUBSTRATES_ANNOTATIONS_FILE}")
 
 # Initialize annotation maps and flags
-pathways_annotations_map = {}
+pathways_annotations_map = defaultdict(dict)
 pathways_set = set()
 pathways_annotated = False
-carbon_substrates_annotations_map = {}
+carbon_substrates_annotations_and_roles_map = defaultdict(dict)
 carbon_substrates_set = set()
 carbon_substrates_set_not_annotated = set()
 carbon_substrates_annotated = False
@@ -96,12 +108,13 @@ if pathways_annotation_file_path.exists():
         pathways_annotated = True
 if carbon_substrates_annotation_file_path.exists():
     with open(carbon_substrates_annotation_file_path, "r") as f:
-        next(f)  # Skip header
-        carbon_substrates_annotations_map = {
-            line.split("\t")[0]: TextAnnotation(object_id=line.split("\t")[1], object_label=line.split("\t")[2])
-            for line in f.readlines()
-        }
-        carbon_substrates_set.update(annotation for annotation in carbon_substrates_annotations_map.keys())
+        try:
+            carbon_substrates_annotations_and_roles_map = {
+                k: v for line in f if line.strip() for k, v in json.loads(line).items()
+            }
+        except json.JSONDecodeError:
+            carbon_substrates_annotations_and_roles_map = {}
+        carbon_substrates_set.update(substrate for substrate in carbon_substrates_annotations_and_roles_map.keys())
         carbon_substrates_annotated = True
 
 
@@ -187,47 +200,111 @@ with tqdm(total=total_rows, desc="Processing rows", unit="row") as pbar:
 
             koza_app.write(organism, pathway, tax_path_association)
 
-        # Handle carbon substrates annotations
-        if trait_object.carbon_substrates and trait_object.carbon_substrates != "NA":
-            split_substrates = trait_object.carbon_substrates.split(", ")
-            for substrate in split_substrates:
-                if not carbon_substrates_annotated:
-                    annotations = chebi_adapter.annotate_text(substrate, configuration)
-                    if substrate not in carbon_substrates_set and substrate not in carbon_substrates_set_not_annotated:
-                        # Update the set if the substrate is not in any of the object_labels in the annotations list
-                        if all(substrate != annotation.object_label for annotation in annotations):
-                            carbon_substrates_set_not_annotated.add(substrate)
-                        else:
-                            with open(carbon_substrates_annotation_file_path, "a") as f:
+        # Open the file in append mode for streaming
+        with open(carbon_substrates_annotation_file_path, 'a') as json_file:
+            # Handle carbon substrates annotations
+            if trait_object.carbon_substrates and trait_object.carbon_substrates != "NA":
+                split_substrates = trait_object.carbon_substrates.split(", ")
+                for substrate in split_substrates:
+                    if not carbon_substrates_annotated:
+                        annotations = chebi_adapter.annotate_text(substrate, configuration)
+                        if (
+                            substrate not in carbon_substrates_set
+                            and substrate not in carbon_substrates_set_not_annotated
+                        ):
+                            # Update the set if the substrate is not in any of the object_labels in the annotations list
+                            if all(substrate != annotation.object_label for annotation in annotations):
+                                carbon_substrates_set_not_annotated.add(substrate)
+                            else:
                                 for annotation in annotations:
                                     if substrate not in carbon_substrates_set:
                                         if annotation.object_label.lower() == substrate.lower():
-                                            f.write(f"{substrate}\t{annotation.object_id}\t{annotation.object_label}\n")
-                                            carbon_substrates_annotations_map[substrate] = annotation
+                                            roles_object_list = []
+                                            substrate_roles = set(
+                                                chebi_adapter.relationships(
+                                                    subjects={annotation.object_id}, predicates=[HAS_ROLE]
+                                                )
+                                            )
+                                            if substrate_roles != set():
+                                                for role in substrate_roles:
+                                                    chemical_role = ChemicalRole(
+                                                        id=role[2],
+                                                        name=chebi_adapter.label(role[2]),
+                                                        has_attribute_type="role",
+                                                    )
+                                                    roles_object_list.append(chemical_role)
+
+                                            # Update the map
+                                            carbon_substrates_annotations_and_roles_map[substrate] = {
+                                                ANNOTATION_KEY: {
+                                                    "object_id": annotation.object_id,
+                                                    "object_label": annotation.object_label,
+                                                },
+                                                ROLES_KEY: [
+                                                    {
+                                                        "id": role.id,
+                                                        "name": role.name,
+                                                        "has_attribute_type": role.has_attribute_type,
+                                                    }
+                                                    for role in roles_object_list
+                                                ],
+                                            }
+
+                                            # Add to the set
                                             carbon_substrates_set.add(substrate)
 
-                if substrate in carbon_substrates_annotations_map:
-                    annotation = carbon_substrates_annotations_map[substrate]
-                    carbon_substrate = ChemicalEntity(
-                        id=annotation.object_id,
-                        name=annotation.object_label,
-                    )
-                else:
-                    carbon_substrate = ChemicalEntity(
-                        id=f"{CARBON_SUBSTRATE_PREFIX}:{substrate.replace(' ', '_')}",
-                        name=substrate,
-                    )
-                tax_carbon_substrate_association = Association(
-                    id=str(uuid.uuid1()),
-                    subject=organism.id,
-                    predicate=TAXON_CARBON_SUBSTRATE_PREDICATE,
-                    object=carbon_substrate.id,
-                    subject_category=organism.category[0],
-                    object_category=carbon_substrate.category[0],
-                    knowledge_level="not_provided",
-                    agent_type="not_provided",
-                )
+                                            # Write to the file
+                                            json.dump(
+                                                {substrate: carbon_substrates_annotations_and_roles_map[substrate]},
+                                                json_file,
+                                            )
+                                            json_file.write("\n")
 
-                koza_app.write(organism, carbon_substrate, tax_carbon_substrate_association)
+                    if substrate in carbon_substrates_annotations_and_roles_map:
+                        annotation_data = carbon_substrates_annotations_and_roles_map[substrate][ANNOTATION_KEY]
+                        roles_data = carbon_substrates_annotations_and_roles_map[substrate][ROLES_KEY]
+                        carbon_substrate = ChemicalEntity(
+                            id=annotation_data["object_id"],
+                            name=annotation_data["object_label"],
+                        )
+
+                        carbon_substrate_roles = [
+                            ChemicalRole(
+                                id=role["id"], name=role["name"], has_attribute_type=role["has_attribute_type"]
+                            )
+                            for role in roles_data
+                        ]
+                    else:
+                        carbon_substrate = ChemicalEntity(
+                            id=f"{CARBON_SUBSTRATE_PREFIX}:{substrate.replace(' ', '_')}",
+                            name=substrate,
+                        )
+                        carbon_substrate_roles = []
+
+                    tax_carbon_substrate_association = Association(
+                        id=str(uuid.uuid1()),
+                        subject=carbon_substrate.id,
+                        predicate=TAXON_CARBON_SUBSTRATE_PREDICATE,
+                        object=organism.id,
+                        subject_category=carbon_substrate.category[0],
+                        object_category=organism.category[0],
+                        knowledge_level="not_provided",
+                        agent_type="not_provided",
+                    )
+
+                    koza_app.write(organism, carbon_substrate, tax_carbon_substrate_association)
+                    if carbon_substrate_roles:
+                        for role in carbon_substrate_roles:
+                            role_association = Association(
+                                id=str(uuid.uuid1()),
+                                subject=carbon_substrate.id,
+                                predicate=CARBON_SUBSTRATE_ROLE_PREDICATE,
+                                object=role.id,
+                                subject_category=carbon_substrate.category[0],
+                                object_category=role.category[0],
+                                knowledge_level="not_provided",
+                                agent_type="not_provided",
+                            )
+                            koza_app.write(carbon_substrate, role, role_association)
 
         pbar.update(1)
