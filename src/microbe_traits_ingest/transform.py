@@ -2,16 +2,13 @@ import uuid  # For generating UUIDs for associations
 from os import makedirs
 from pathlib import Path
 
-from biolink_model.datamodel.pydanticmodel_v2 import (
-    Association,
-    BiologicalProcess,
-    OrganismTaxon,
-)
+from biolink_model.datamodel.pydanticmodel_v2 import Association, BiologicalProcess, ChemicalRole, OrganismTaxon
 from koza.cli_utils import get_koza_app
 from oaklib.datamodels.text_annotator import TextAnnotation, TextAnnotationConfiguration
 from tqdm import tqdm
 
 from microbe_traits_ingest.constants import (
+    CARBON_SUBSTRATE_PREFIX,
     CARBON_SUBSTRATES,
     CARBON_SUBSTRATES_ANNOTATIONS_FILE,
     CELL_SHAPE,
@@ -50,6 +47,7 @@ from microbe_traits_ingest.constants import (
     SPORULATION,
     SUPERKINGDOM,
     TAX_ID,
+    TAXON_CARBON_SUBSTRATE_PREDICATE,
     TAXON_PATHWAY_PREDICATE,
     TMP_DIR,
     TRNA_GENES,
@@ -80,6 +78,11 @@ carbon_substrates_annotation_file_path = Path(f"{TMP_DIR}/{CARBON_SUBSTRATES_ANN
 pathways_annotations_map = {}
 pathways_set = set()
 pathways_annotated = False
+carbon_substrates_annotations_map = {}
+carbon_substrates_set = set()
+carbon_substrates_set_not_annotated = set()
+carbon_substrates_annotated = False
+makedirs(TMP_DIR, exist_ok=True)
 
 # Load existing pathways annotations if available
 if pathways_annotation_file_path.exists():
@@ -89,12 +92,20 @@ if pathways_annotation_file_path.exists():
             line.split("\t")[0]: TextAnnotation(object_id=line.split("\t")[1], object_label=line.split("\t")[2])
             for line in f.readlines()
         }
-        pathways_set.update(annotation.object_id for annotation in pathways_annotations_map.values())
+        pathways_set.update(annotation for annotation in pathways_annotations_map.keys())
         pathways_annotated = True
-else:
-    makedirs(TMP_DIR, exist_ok=True)
+if carbon_substrates_annotation_file_path.exists():
+    with open(carbon_substrates_annotation_file_path, "r") as f:
+        next(f)  # Skip header
+        carbon_substrates_annotations_map = {
+            line.split("\t")[0]: TextAnnotation(object_id=line.split("\t")[1], object_label=line.split("\t")[2])
+            for line in f.readlines()
+        }
+        carbon_substrates_set.update(annotation for annotation in carbon_substrates_annotations_map.keys())
+        carbon_substrates_annotated = True
 
-total_rows = 172324
+
+total_rows = 172324  #! Total number of rows in the dataset: manually entered.
 
 with tqdm(total=total_rows, desc="Processing rows", unit="row") as pbar:
     while (row := koza_app.get_row()) is not None:
@@ -147,10 +158,10 @@ with tqdm(total=total_rows, desc="Processing rows", unit="row") as pbar:
                 annotations = upa_adapter.annotate_text(trait_object.pathways, configuration)
                 with open(pathways_annotation_file_path, "a") as f:
                     for annotation in annotations:
-                        if annotation.object_id not in pathways_set:
+                        if trait_object.pathways not in pathways_set:
                             f.write(f"{trait_object.pathways}\t{annotation.object_id}\t{annotation.object_label}\n")
                             pathways_annotations_map[trait_object.pathways] = annotation
-                            pathways_set.add(annotation.object_id)
+                            pathways_set.add(trait_object.pathways)
 
             if trait_object.pathways in pathways_annotations_map:
                 annotation = pathways_annotations_map[trait_object.pathways]
@@ -159,7 +170,6 @@ with tqdm(total=total_rows, desc="Processing rows", unit="row") as pbar:
                     name=annotation.object_label,
                 )
             else:
-                # print(f"Pathway not annotated: {trait_object.pathways}")
                 pathway = BiologicalProcess(
                     id=f"{PATHWAY_PREFIX}:{trait_object.pathways}",
                     name=trait_object.pathways,
@@ -176,5 +186,50 @@ with tqdm(total=total_rows, desc="Processing rows", unit="row") as pbar:
             )
 
             koza_app.write(organism, pathway, tax_path_association)
+
+        # Handle carbon substrates annotations
+        if trait_object.carbon_substrates and trait_object.carbon_substrates != "NA":
+            split_substrates = trait_object.carbon_substrates.split(", ")
+            for substrate in split_substrates:
+                if not carbon_substrates_annotated:
+                    annotations = chebi_adapter.annotate_text(substrate, configuration)
+                    if substrate not in carbon_substrates_set and substrate not in carbon_substrates_set_not_annotated:
+                        # Update the set if the substrate is not in any of the object_labels in the annotations list
+                        if all(substrate != annotation.object_label for annotation in annotations):
+                            carbon_substrates_set_not_annotated.add(substrate)
+                        else:
+                            with open(carbon_substrates_annotation_file_path, "a") as f:
+                                for annotation in annotations:
+                                    if substrate not in carbon_substrates_set:
+                                        if annotation.object_label.lower() == substrate.lower():
+                                            f.write(f"{substrate}\t{annotation.object_id}\t{annotation.object_label}\n")
+                                            carbon_substrates_annotations_map[substrate] = annotation
+                                            carbon_substrates_set.add(substrate)
+
+                if substrate in carbon_substrates_annotations_map:
+                    annotation = carbon_substrates_annotations_map[substrate]
+                    carbon_substrate = ChemicalRole(
+                        id=annotation.object_id,
+                        name=annotation.object_label,
+                        has_attribute_type="carbon substrate",
+                    )
+                else:
+                    carbon_substrate = ChemicalRole(
+                        id=f"{CARBON_SUBSTRATE_PREFIX}:{substrate.replace(' ', '_')}",
+                        name=substrate,
+                        has_attribute_type="carbon substrate",
+                    )
+                tax_carbon_substrate_association = Association(
+                    id=str(uuid.uuid1()),
+                    subject=organism.id,
+                    predicate=TAXON_CARBON_SUBSTRATE_PREDICATE,
+                    object=carbon_substrate.id,
+                    subject_category=organism.category[0],
+                    object_category=carbon_substrate.category[0],
+                    knowledge_level="not_provided",
+                    agent_type="not_provided",
+                )
+
+                koza_app.write(organism, carbon_substrate, tax_carbon_substrate_association)
 
         pbar.update(1)

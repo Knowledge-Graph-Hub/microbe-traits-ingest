@@ -92,10 +92,10 @@ clobber:
 
 .PHONY: lint
 lint: 
-	$(RUN) ruff check --diff --exit-zero
-	$(RUN) black -l 120 --check --diff src tests
+	$(RUN) ruff check --diff --exit-zero --exclude src/microbe_traits_ingest\schema/traits_datamodel.py
+	$(RUN) black -l 120 --check --diff src tests --exclude= src\/microbe_traits_ingest/\schema\/traits_datamodel\.py
 
 .PHONY: format
 format: 
-	$(RUN) ruff check --fix --exit-zero 
-	$(RUN) black -l 120 src tests --exclude= src\/microbe_traits_ingest/\schema\/*\.py
+	$(RUN) ruff check --fix --exit-zero --exclude src/microbe_traits_ingest/schema/traits_datamodel.py
+	$(RUN) black -l 120 src tests --exclude= src\/microbe_traits_ingest/\schema\/traits_datamodel\.py
