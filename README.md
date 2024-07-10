@@ -1,8 +1,16 @@
 # microbe-traits-ingest
 
-| [Documentation](https://Knowledge-Graph-Hub.github.io/microbe-traits-ingest) |
+| [Documentation]http://kghub.org/microbe-traits-ingest/) |
 
 This is ingestion code for the repository: bacteria-archaea-traits.
+
+## Graphs
+- [x] OrganismTaxon <=> Pathways
+- [x] OrganismTaxon <=> Carbon substrates
+- [x] Carbon substrates <=> Chemical roles
+- [] OrganismTaxon <=> oxygen:XXX
+- [] OrganismTaxon <=> cell_shape:XXX
+- [] OrganismTaxon <=> EnvironmentalFeature (isolation_source)
 
 ## Requirements
 
@@ -100,21 +108,21 @@ make help
 Download the data for the microbe_traits_ingest transform:
 
 ```bash
-poetry run microbe_traits_ingest download
+poetry run ingest download
 ```
 
 To run the Koza transform for microbe-traits-ingest:
 
 ```bash
-poetry run microbe_traits_ingest transform
+poetry run ingest transform
 ```
 
 To see available options:
 
 ```bash
-poetry run microbe_traits_ingest download --help
+poetry run ingest download --help
 # or
-poetry run microbe_traits_ingest transform --help
+poetry run ingest transform --help
 ```
 
 ### Testing
